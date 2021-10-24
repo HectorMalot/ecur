@@ -43,7 +43,7 @@ func GetData(cmd *cobra.Command, args []string) {
 
 	EcuData, err := c.GetData()
 	if err != nil {
-		log.Fatal("Error:", err)
+		log.Fatal("Error: ", err)
 	}
 
 	if outputJson {
@@ -57,7 +57,7 @@ func GetData(cmd *cobra.Command, args []string) {
 func PrintJSON(data ecur.ECUResponse) {
 	output, err := json.Marshal(data)
 	if err != nil {
-		log.Fatal("Error:", err)
+		log.Fatal("Error: ", err)
 	}
 	fmt.Println(string(output))
 }

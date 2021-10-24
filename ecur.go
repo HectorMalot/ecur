@@ -2,9 +2,7 @@ package ecur
 
 import (
 	"encoding/binary"
-	"errors"
 	"fmt"
-	"log"
 	"strconv"
 	"time"
 )
@@ -20,13 +18,6 @@ const (
 	CmdGetEnergyWeekSuffix  = "END00END\n"
 	CmdGetEnergyMonthSuffix = "END01END\n"
 	CmdGetEnergyYearSuffix  = "END02END\n"
-)
-
-var (
-	ErrCouldNotConnect     = errors.New("could not connect to ECU-R")
-	ErrNotConnected        = errors.New("not connected to ECU-R")
-	ErrMalformedBody       = errors.New("binary body not as expected")
-	ErrUnknownInverterType = errors.New("unknown inverter type")
 )
 
 type ECUResponse struct {
@@ -80,20 +71,20 @@ func NewECUInfo(raw []byte) (ECUInfo, error) {
 	// Validation
 	err := validateLength(raw)
 	if err != nil {
-		return ECUInfo{}, err
+		return ECUInfo{Raw: raw}, err
 	}
 
 	// Version
 	verLength, err := strconv.Atoi(string(raw[52:55]))
 	if err != nil {
-		return ECUInfo{}, ErrMalformedBody
+		return ECUInfo{Raw: raw}, fmt.Errorf("could not parse version from body: %w", ErrMalformedBody)
 	}
 	version := string(raw[55 : 55+verLength])
 
 	// TZ length
 	tzLength, err := strconv.Atoi(string(raw[55+verLength : 55+verLength+3]))
 	if err != nil {
-		return ECUInfo{}, ErrMalformedBody
+		return ECUInfo{Raw: raw}, fmt.Errorf("could not parse timezone length from body: %w", ErrMalformedBody)
 	}
 
 	// Return struct
@@ -166,7 +157,7 @@ func NewArrayInfo(raw []byte) (ArrayInfo, error) {
 	for i := 0; i < numInverters; i++ {
 		inverter, err := NewInverterInfo(raw[start+i*length : start+(i+1)*length])
 		if err != nil {
-			return ArrayInfo{Raw: raw}, ErrMalformedBody
+			return ArrayInfo{Raw: raw}, fmt.Errorf("could not parse inverter %d from body: %w", i+1, err)
 		}
 		inverters = append(inverters, inverter)
 	}
@@ -197,7 +188,7 @@ NewInverterInfo parses the inverterInfo response into a struct
 */
 func NewInverterInfo(raw []byte) (InverterInfo, error) {
 	if len(raw)-1 < 22 {
-		return InverterInfo{}, ErrMalformedBody
+		return InverterInfo{}, fmt.Errorf("body too short (<22 chars) to parse inverter: %w", ErrMalformedBody)
 	}
 	model := ""
 	switch string(raw[8]) {
@@ -285,7 +276,7 @@ func NewInverterSignalinfo(raw []byte) (InverterSignalInfo, error) {
 	statusValue := raw[13:15]
 	status, err := strconv.Atoi(string(statusValue))
 	if err != nil {
-		return InverterSignalInfo{}, ErrMalformedBody
+		return InverterSignalInfo{}, fmt.Errorf("could not parse status from body: %w", err)
 	}
 	res := InverterSignalInfo{
 		Raw:    raw,
@@ -308,19 +299,26 @@ func NewInverterSignalinfo(raw []byte) (InverterSignalInfo, error) {
 // validateLength returns and error if the binary body length does
 // not match the length indicated in the header of the body
 func validateLength(body []byte) error {
-	// Validation
+	// Minimum length to contain a length indication
 	if len(body) < 8 {
-		return ErrMalformedBody
+		return fmt.Errorf("body length under than 8 characters: %w", ErrMalformedBody)
+	}
+
+	// Finishes with 'END\n'
+	match := []byte{69, 78, 68, 10}
+	for i := 0; i < 4; i++ {
+		if body[len(body)-4+i] != match[i] {
+			return fmt.Errorf("body does not end with 'END\\n': %w", ErrMalformedBody)
+		}
 	}
 
 	resLength, err := strconv.Atoi(string(body[5:9]))
 	if err != nil {
-		return ErrMalformedBody
+		return fmt.Errorf("failed to parse body lenght from header: %w", ErrMalformedBody)
 	}
 
 	if len(body)-1 != resLength {
-		log.Println("Length Mismatch")
-		return ErrMalformedBody
+		return fmt.Errorf("body length does not match length specified in header: %w", ErrMalformedBody)
 	}
 
 	return nil

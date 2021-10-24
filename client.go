@@ -3,7 +3,6 @@ package ecur
 import (
 	"bufio"
 	"fmt"
-	"log"
 	"net"
 	"strconv"
 	"time"
@@ -32,15 +31,13 @@ func NewClient(ip string, port int) (*Client, error) {
 func (c *Client) GetData() (ECUResponse, error) {
 	err := c.Connect()
 	if err != nil {
-		log.Printf("Could not connect to ECU: %s", err)
-		return ECUResponse{}, err
+		return ECUResponse{}, fmt.Errorf("could not connect to ECU: %w", err)
 	}
 
 	// Get ECU-R information
 	ecuInfo, err := c.GetECUInfo()
 	if err != nil {
-		log.Printf("Could not get ECU information: %s", err)
-		return ECUResponse{ECUInfo: ecuInfo}, err
+		return ECUResponse{ECUInfo: ecuInfo}, fmt.Errorf("could not get ECU information: %w", err)
 	}
 	c.ecuID = ecuInfo.EcuID
 
@@ -50,8 +47,8 @@ func (c *Client) GetData() (ECUResponse, error) {
 	// Get Inverter information
 	arrayInfo, err := c.GetInverterInfo()
 	if err != nil {
-		log.Printf("Could not get inverter information: %s", err)
-		return ECUResponse{ECUInfo: ecuInfo, ArrayInfo: arrayInfo}, err
+		return ECUResponse{ECUInfo: ecuInfo, ArrayInfo: arrayInfo},
+			fmt.Errorf("could not get inverter information: %w", err)
 	}
 
 	// Wait between steps to not overload the ECU controller
@@ -60,8 +57,8 @@ func (c *Client) GetData() (ECUResponse, error) {
 	// Get Inverter signal strength
 	inverterSignal, err := c.GetInverterSignal()
 	if err != nil {
-		log.Printf("Could not get inverter signal strength information: %s", err)
-		return ECUResponse{ECUInfo: ecuInfo, ArrayInfo: arrayInfo, InverterSignalInfo: inverterSignal}, err
+		return ECUResponse{ECUInfo: ecuInfo, ArrayInfo: arrayInfo, InverterSignalInfo: inverterSignal},
+			fmt.Errorf("could not get inverter signal strength information: %w", err)
 	}
 
 	return ECUResponse{
@@ -100,7 +97,8 @@ func (c *Client) GetECUInfo() (ECUInfo, error) {
 	fmt.Fprint(c.conn, CmdECUInfo)
 	raw, err := bufio.NewReader(c.conn).ReadBytes('\n')
 	if err != nil {
-		return ECUInfo{Raw: raw}, ErrMalformedBody
+		return ECUInfo{Raw: raw},
+			fmt.Errorf("failed to read body from connection: %w", err)
 	}
 
 	ecuInfo, err := NewECUInfo(raw)
@@ -131,12 +129,13 @@ func (c *Client) GetInverterInfo() (ArrayInfo, error) {
 	fmt.Fprintf(c.conn, "%s%s%s", CmdInverterInfoPrefix, c.ecuID, CmdInverterInfoSuffix)
 	raw, err := bufio.NewReader(c.conn).ReadBytes('\n')
 	if err != nil {
-		return ArrayInfo{}, ErrMalformedBody
+		return ArrayInfo{Raw: raw},
+			fmt.Errorf("could not ready body from connection: %w", err)
 	}
 
 	arrayInfo, err := NewArrayInfo(raw)
 	if err != nil {
-		return ArrayInfo{}, err
+		return arrayInfo, err
 	}
 
 	return arrayInfo, nil
