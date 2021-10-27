@@ -301,24 +301,24 @@ func NewInverterSignalinfo(raw []byte) (InverterSignalInfo, error) {
 func validateLength(body []byte) error {
 	// Minimum length to contain a length indication
 	if len(body) < 8 {
-		return fmt.Errorf("body length under than 8 characters: %w", ErrMalformedBody)
+		return fmt.Errorf("body length less than 8 characters. Length was %d: %w", len(body), ErrMalformedBody)
 	}
 
 	// Finishes with 'END\n'
 	match := []byte{69, 78, 68, 10}
 	for i := 0; i < 4; i++ {
 		if body[len(body)-4+i] != match[i] {
-			return fmt.Errorf("body does not end with 'END\\n': %w", ErrMalformedBody)
+			return fmt.Errorf("body does not end with 'END\\n; got body (%v)': %w", body, ErrMalformedBody)
 		}
 	}
 
 	resLength, err := strconv.Atoi(string(body[5:9]))
 	if err != nil {
-		return fmt.Errorf("failed to parse body lenght from header: %w", ErrMalformedBody)
+		return fmt.Errorf("failed to parse body lenght from header: %w", err)
 	}
 
 	if len(body)-1 != resLength {
-		return fmt.Errorf("body length does not match length specified in header: %w", ErrMalformedBody)
+		return fmt.Errorf("body length does not match length specified in header; expected %d, got %d: %w", resLength, len(body)-1, ErrMalformedBody)
 	}
 
 	return nil

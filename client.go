@@ -1,7 +1,6 @@
 package ecur
 
 import (
-	"bufio"
 	"fmt"
 	"net"
 	"strconv"
@@ -33,6 +32,7 @@ func (c *Client) GetData() (ECUResponse, error) {
 	if err != nil {
 		return ECUResponse{}, fmt.Errorf("could not connect to ECU: %w", err)
 	}
+	defer c.Close()
 
 	// Get ECU-R information
 	ecuInfo, err := c.GetECUInfo()
@@ -95,7 +95,7 @@ func (c *Client) GetECUInfo() (ECUInfo, error) {
 	}
 
 	fmt.Fprint(c.conn, CmdECUInfo)
-	raw, err := bufio.NewReader(c.conn).ReadBytes('\n')
+	raw, err := ApsRead(c.conn)
 	if err != nil {
 		return ECUInfo{Raw: raw},
 			fmt.Errorf("failed to read body from connection: %w", err)
@@ -127,7 +127,7 @@ func (c *Client) GetInverterInfo() (ArrayInfo, error) {
 
 	// Run command
 	fmt.Fprintf(c.conn, "%s%s%s", CmdInverterInfoPrefix, c.ecuID, CmdInverterInfoSuffix)
-	raw, err := bufio.NewReader(c.conn).ReadBytes('\n')
+	raw, err := ApsRead(c.conn)
 	if err != nil {
 		return ArrayInfo{Raw: raw},
 			fmt.Errorf("could not ready body from connection: %w", err)
@@ -158,7 +158,7 @@ func (c *Client) GetInverterSignal() (InverterSignalInfo, error) {
 
 	// Run command
 	fmt.Fprintf(c.conn, "%s%s%s", CmdInverterSignalPrefix, c.ecuID, CmdInverterSignalSuffix)
-	raw, err := bufio.NewReader(c.conn).ReadBytes('\n')
+	raw, err := ApsRead(c.conn)
 	if err != nil {
 		return InverterSignalInfo{}, ErrMalformedBody
 	}
