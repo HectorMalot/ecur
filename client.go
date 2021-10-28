@@ -151,7 +151,7 @@ func (c *Client) GetInverterSignal() (InverterSignalInfo, error) {
 	if c.ecuID == "" {
 		ecuInfo, err := c.GetECUInfo()
 		if err != nil {
-			return InverterSignalInfo{}, err
+			return InverterSignalInfo{}, fmt.Errorf("failed to get ecuID for GetInverterSignal(): %w", err)
 		}
 		c.ecuID = ecuInfo.EcuID
 	}
@@ -160,12 +160,12 @@ func (c *Client) GetInverterSignal() (InverterSignalInfo, error) {
 	fmt.Fprintf(c.conn, "%s%s%s", CmdInverterSignalPrefix, c.ecuID, CmdInverterSignalSuffix)
 	raw, err := ApsRead(c.conn)
 	if err != nil {
-		return InverterSignalInfo{}, ErrMalformedBody
+		return InverterSignalInfo{Raw: raw}, fmt.Errorf("failed to read signal strength information from ECU-R: %w", err)
 	}
 
 	signalInfo, err := NewInverterSignalinfo(raw)
 	if err != nil {
-		return InverterSignalInfo{}, err
+		return signalInfo, fmt.Errorf("failed to convert signal strength information from ECU-R into InverterSignalInfo struct: %w", err)
 	}
 
 	return signalInfo, nil

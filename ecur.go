@@ -362,7 +362,7 @@ func binToTimestamp(body []byte) (time.Time, error) {
 	if err != nil {
 		return time.Now(), err
 	}
-	return time.Date(year, time.Month(month), day, hour, min, sec, 0, time.UTC), nil
+	return time.Date(year, time.Month(month), day, hour, min, sec, 0, time.Local), nil
 }
 
 func byteSliceToString(body []byte) string {
