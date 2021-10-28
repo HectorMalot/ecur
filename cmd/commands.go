@@ -36,7 +36,7 @@ var getCmd = &cobra.Command{
 }
 
 func GetData(cmd *cobra.Command, args []string) {
-	c, err := ecur.NewClient(host, port)
+	c, err := ecur.NewClient(host, port, tz)
 	if err != nil {
 		log.Fatal("Error:", err)
 	}

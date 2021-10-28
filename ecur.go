@@ -9,6 +9,7 @@ import (
 
 const (
 	DefaultPort             = 8899
+	DefaultTz               = "UTC"
 	CmdECUInfo              = "APS1100160001END\n"
 	CmdInverterInfoPrefix   = "APS1100280002"
 	CmdInverterInfoSuffix   = "END\n"
@@ -122,7 +123,9 @@ type InverterInfo struct {
 }
 
 /*
-NewArrayInfo parses the ArrayInfo response into a struct
+NewArrayInfo parses the ArrayInfo response into a struct. It accepts a
+IANA timezone (e.g. Europe/Amsterdam) to parse the timestamp from the
+binary body. If left empty ("") it defaults to UTC
 
 	# Explanation general header
 	# ----------------------------------
@@ -135,16 +138,21 @@ NewArrayInfo parses the ArrayInfo response into a struct
 	# 17-18 number of inverters
 	# 19-25 timestamp
 */
-func NewArrayInfo(raw []byte) (ArrayInfo, error) {
+func NewArrayInfo(raw []byte, tz string) (ArrayInfo, error) {
 	// Validation
 	err := validateLength(raw)
 	if err != nil {
 		return ArrayInfo{Raw: raw}, err
 	}
 
+	// Set timezone for the timestamp returned by the ECU-R
+	if tz == "" {
+		tz = DefaultTz
+	}
+
 	// Parsing the header
 	// - timestamp: 19-25
-	timestamp, err := binToTimestamp(raw[19:26])
+	timestamp, err := binToTimestamp(raw[19:26], tz)
 	if err != nil {
 		return ArrayInfo{Raw: raw}, err
 	}
@@ -329,7 +337,7 @@ func validateLength(body []byte) error {
 // year 2021 is encoded as 0x2021, which is acually int(8226).
 // this function converts the hex values to a string, and then parses
 // them as integers in order to generate the timestamp
-func binToTimestamp(body []byte) (time.Time, error) {
+func binToTimestamp(body []byte, tz string) (time.Time, error) {
 	if len(body) != 7 {
 		return time.Now(), ErrMalformedBody
 	}
@@ -362,7 +370,8 @@ func binToTimestamp(body []byte) (time.Time, error) {
 	if err != nil {
 		return time.Now(), err
 	}
-	return time.Date(year, time.Month(month), day, hour, min, sec, 0, time.Local), nil
+	loc, _ := time.LoadLocation(tz)
+	return time.Date(year, time.Month(month), day, hour, min, sec, 0, loc), nil
 }
 
 func byteSliceToString(body []byte) string {

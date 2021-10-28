@@ -36,13 +36,13 @@ func TestECUInfoParser(t *testing.T) {
 func TestArrayInfoParser(t *testing.T) {
 	// at night
 	raw := []byte{65, 80, 83, 49, 49, 48, 48, 55, 53, 48, 48, 48, 50, 48, 48, 48, 49, 0, 2, 32, 33, 16, 24, 34, 82, 16, 128, 16, 0, 3, 0, 0, 0, 48, 51, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2, 0, 3, 128, 16, 0, 3, 0, 1, 0, 48, 51, 0, 0, 0, 100, 0, 0, 0, 0, 0, 0, 0, 2, 0, 2, 69, 78, 68, 10}
-	info, err := NewArrayInfo(raw)
+	info, err := NewArrayInfo(raw, "Europe/Amsterdam")
 	require.NoError(t, err)
 	require.Equal(t, false, info.Inverters[0].Online)
 
 	// during day
 	raw = []byte{65, 80, 83, 49, 49, 48, 48, 55, 53, 48, 48, 48, 50, 48, 48, 48, 49, 0, 2, 32, 33, 16, 32, 20, 24, 5, 128, 16, 0, 3, 0, 0, 1, 48, 51, 1, 243, 0, 119, 0, 57, 0, 228, 0, 56, 0, 60, 0, 60, 128, 16, 0, 3, 0, 1, 1, 48, 51, 1, 243, 0, 118, 0, 55, 0, 229, 0, 55, 0, 57, 0, 56, 69, 78, 68, 10}
-	info, err = NewArrayInfo(raw)
+	info, err = NewArrayInfo(raw, "Europe/Amsterdam")
 	require.NoError(t, err)
 	require.Equal(t, true, info.Inverters[0].Online)
 }
@@ -61,13 +61,13 @@ func TestByteSliceToString(t *testing.T) {
 }
 
 func TestTimestampParser(t *testing.T) {
-	body := []byte{0x20, 0x21, 0x10, 0x23, 0x11, 0x46, 0x48}
-	ts, err := binToTimestamp(body)
+	body := []byte{0x20, 0x21, 0x10, 0x28, 0x10, 0x00, 0x01}
+	ts, err := binToTimestamp(body, "Europe/Amsterdam")
 	require.NoError(t, err)
 	require.Equal(t, 2021, ts.Year())
 	require.Equal(t, time.October, ts.Month())
-	require.Equal(t, 23, ts.Day())
-	require.Equal(t, 11, ts.Hour())
-	require.Equal(t, 46, ts.Minute())
-	require.Equal(t, 48, ts.Second())
+	require.Equal(t, 28, ts.Day())
+	require.Equal(t, 10, ts.Hour())
+	require.Equal(t, 0, ts.Minute())
+	require.Equal(t, 01, ts.Second())
 }

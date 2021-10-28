@@ -15,15 +15,17 @@ type Client struct {
 	conn     net.Conn
 
 	ecuID string
+	tz    string
 }
 
-func NewClient(ip string, port int) (*Client, error) {
+func NewClient(ip string, port int, tz string) (*Client, error) {
 	return &Client{
 		ip:       ip,
 		port:     strconv.Itoa(port),
 		cooldown: time.Millisecond * time.Duration(25),
 		conn:     nil,
 		ecuID:    "",
+		tz:       tz,
 	}, nil
 }
 
@@ -133,7 +135,7 @@ func (c *Client) GetInverterInfo() (ArrayInfo, error) {
 			fmt.Errorf("could not ready body from connection: %w", err)
 	}
 
-	arrayInfo, err := NewArrayInfo(raw)
+	arrayInfo, err := NewArrayInfo(raw, c.tz)
 	if err != nil {
 		return arrayInfo, err
 	}

@@ -13,7 +13,7 @@ func TestClient(t *testing.T) {
 	if !ok {
 		t.Skip("Skipping TestClient: no APS_IP variable provided")
 	}
-	c, err := NewClient(ip, DefaultPort)
+	c, err := NewClient(ip, DefaultPort, "Europe/Amsterdam")
 	require.NoError(t, err)
 
 	// Valid port should connect
@@ -37,7 +37,7 @@ func TestClientGetData(t *testing.T) {
 	if !ok {
 		t.Skip("Skipping TestClientGetData: no APS_IP variable provided")
 	}
-	c, err := NewClient(ip, DefaultPort)
+	c, err := NewClient(ip, DefaultPort, "Europe/Amsterdam")
 	require.NoError(t, err)
 
 	// E2E call should succeed
