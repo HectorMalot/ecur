@@ -60,6 +60,12 @@ func TestByteSliceToString(t *testing.T) {
 	require.Equal(t, "0123EF", byteSliceToString([]byte{0x01, 0x23, 0xef}))
 }
 
+func TestModelFromSerial(t *testing.T) {
+	require.Equal(t, "QS1", modelFromSerial("801000034567"))
+	require.Equal(t, "YC1000", modelFromSerial("501000034567"))
+	require.Equal(t, "YC600", modelFromSerial("406000034567"))
+}
+
 func TestTimestampParser(t *testing.T) {
 	body := []byte{0x20, 0x21, 0x10, 0x28, 0x10, 0x00, 0x01}
 	ts, err := binToTimestamp(body, "Europe/Amsterdam")

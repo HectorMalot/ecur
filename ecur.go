@@ -198,11 +198,12 @@ func NewInverterInfo(raw []byte) (InverterInfo, error) {
 	if len(raw)-1 < 22 {
 		return InverterInfo{}, fmt.Errorf("body too short (<22 chars) to parse inverter: %w", ErrMalformedBody)
 	}
-	model := ""
-	switch string(raw[8]) {
-	case "1": // YC600 - not validated
+	serial := byteSliceToString(raw[0:6])
+	model := modelFromSerial(serial)
+	switch model {
+	case "YC600": // YC600 - not validated
 		return InverterInfo{
-			ID:          byteSliceToString(raw[0:6]),
+			ID:          serial,
 			Online:      raw[6] != 0,
 			Model:       "YC600",
 			Frequency:   float64(binary.BigEndian.Uint16(raw[9:11])) / 10,
@@ -213,9 +214,9 @@ func NewInverterInfo(raw []byte) (InverterInfo, error) {
 			PowerC:      0,
 			PowerD:      0,
 		}, nil
-	case "2": // YC1000 - not validated
+	case "YC1000": // YC1000 - not validated
 		return InverterInfo{
-			ID:          byteSliceToString(raw[0:6]),
+			ID:          serial,
 			Online:      raw[6] != 0,
 			Model:       "YC1000",
 			Frequency:   float64(binary.BigEndian.Uint16(raw[9:11])) / 10,
@@ -226,9 +227,9 @@ func NewInverterInfo(raw []byte) (InverterInfo, error) {
 			PowerC:      int(binary.BigEndian.Uint16(raw[21:23])),
 			PowerD:      int(binary.BigEndian.Uint16(raw[25:27])),
 		}, nil
-	case "3": // QS1
+	case "QS1": // QS1
 		return InverterInfo{
-			ID:          byteSliceToString(raw[0:6]),
+			ID:          serial,
 			Online:      raw[6] != 0,
 			Model:       "QS1",
 			Frequency:   float64(binary.BigEndian.Uint16(raw[9:11])) / 10,
@@ -239,10 +240,9 @@ func NewInverterInfo(raw []byte) (InverterInfo, error) {
 			PowerC:      int(binary.BigEndian.Uint16(raw[19:21])),
 			PowerD:      int(binary.BigEndian.Uint16(raw[21:23])),
 		}, nil
-	default:
-		model = "Other"
 	}
 
+	// Default response for unknown model types
 	return InverterInfo{
 		ID:     byteSliceToString(raw[0:6]),
 		Online: raw[6] != 0,
@@ -380,4 +380,28 @@ func byteSliceToString(body []byte) string {
 		res = fmt.Sprintf("%s%02X", res, b)
 	}
 	return res
+}
+
+/*
+Returns the inverter model based on its ID
+Starts with 3-digit converter ID
+QS1 = 802 (US and Canada)
+QS1 = 801 (Europe, Middle East and Africa)
+YC600-T = 407 (US and Canada)
+YC600-Y = 409 (US and Canada)
+YC600 = 406 or 408 (Europe, Middle East and Africa)
+YC1000-3 = 503 or 504 (US and Canada)
+YC1000 = 501 or 502 (Europe, Middle East and Africa)
+Ends with 9-digit serialnumber
+*/
+func modelFromSerial(serial string) string {
+	switch serial[0:3] {
+	case "802", "801":
+		return "QS1"
+	case "406", "407", "408", "409":
+		return "YC600"
+	case "501", "502", "503", "504":
+		return "YC1000"
+	}
+	return "unknown"
 }
